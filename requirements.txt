@@ -1,0 +1,16 @@
+pandas
+numpy
+scikit-learn
+Flask
+fastapi
+seaborn
+plotly
+statsmodels
+nbformat
+chart_studio
+pandas_datareader
+shap
+dill
+streamlit
+xgboost
+#-e.
