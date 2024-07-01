@@ -21,7 +21,7 @@ class DataTransformation:
     def __init__(self):
         self.data_transformation_config=DataTransformationConfig()
 
-    def add_ma4eda(self, df):
+    def add_trx2(self, df):
         df['MA_10'] = df['Adj Close'].rolling(10).mean()
         df = df[df['MA_10'].notna()]
         df['MA_20'] = df['Adj Close'].rolling(20).mean()
@@ -35,10 +35,10 @@ class DataTransformation:
         
     
         
-    def get_data_transformer_object(self, all_stocks):
+    def get_data_transformer_object(self, data):
         
         try:
-            prep_ob = self.add_ma4eda(all_stocks)
+            prep_ob = self.add_trx2(data)
             return prep_ob
         
         except Exception as e:
@@ -73,9 +73,8 @@ class DataTransformation:
 
             
             # Concatenate all the stock dataframes into one
-            '''all_stocks = pd.concat([train, test, bureau, burbal], axis=0)
-            all_stocks.reset_index(drop=True, inplace=True)
-            concat_obj=self.get_data_transformer_object(all_stocks)'''
+            data = trx.merge(df, bureau_2, cash_, payments_, cc_, prev_app_)
+            trxobj=self.get_data_transformer_object(data)
 
             logging.info(
                 f"Applying preprocessing object on combined dataframe"
@@ -86,12 +85,12 @@ class DataTransformation:
             save_object(
 
                 file_path=self.data_transformation_config.preprocessor_obj_file_path,
-                obj=concat_obj
+                obj=trxobj
 
             )
 
             return (
-                concat_obj,
+                trxobj,
                 self.data_transformation_config.preprocessor_obj_file_path,
             )
         except Exception as e:

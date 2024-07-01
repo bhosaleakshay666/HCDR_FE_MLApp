@@ -21,10 +21,12 @@ class FeaturePipeline:
         new_columns = [c for c in df.columns if c not in original_columns]
         return df, new_columns
 
+
     def do_sum(dataframe, group_cols, counted, agg_name):
         gp = dataframe[group_cols + [counted]].groupby(group_cols)[counted].sum().reset_index().rename(columns={counted: agg_name})
         dataframe = dataframe.merge(gp, on=group_cols, how='left')
         return dataframe
+
 
     def reduce_mem_usage(dataframe):
         m_start = dataframe.memory_usage().sum() / 1024 ** 2
@@ -53,8 +55,6 @@ class FeaturePipeline:
         m_end = dataframe.memory_usage().sum() / 1024 ** 2
         return dataframe
 
-    
-
 
     def risk_groupanizer(dataframe, column_names, target_val=1, upper_limit_ratio=8.2, lower_limit_ratio=8.2):
     # one-hot encoder killer :-)
@@ -81,7 +81,6 @@ class FeaturePipeline:
                 dataframe.drop(col, axis=1, inplace=True)
         
         return dataframe, list(set(dataframe.columns).difference(set(all_cols)))
-
 
     
     def model1(df, n_folds = 5):

@@ -21,7 +21,7 @@ class TransformPipeline:
 
     
     def group_and_merge(self, df_to_agg, df_to_merge, prefix, aggregations, aggregate_by= 'SK_ID_CURR'):
-        agg_df = group(df_to_agg, prefix, aggregations, aggregate_by= aggregate_by)
+        agg_df = self.group(df_to_agg, prefix, aggregations, aggregate_by= aggregate_by)
         return df_to_merge.merge(agg_df, how='left', on= aggregate_by)
 
 
@@ -309,7 +309,8 @@ class TransformPipeline:
 
     def pos_cash(self, pos):
         
-        pos, cat_cols = one_hot_encoder(pos, nan_as_category=True)
+        fe=FeaturePipeline()
+        pos, cat_cols = fe.one_hot_encoder(pos, nan_as_category=True)
 
         # Flag months with late payment
         pos['LATE_PAYMENT'] = pos['SK_DPD'].apply(lambda x: 1 if x > 0 else 0)
@@ -363,7 +364,7 @@ class TransformPipeline:
         pos_agg = pd.merge(pos_agg, df_gp, on= 'SK_ID_CURR', how= 'left')
 
         # Percentage of late payments for the 3 most recent applications
-        pos = do_sum(pos, ['SK_ID_PREV'], 'LATE_PAYMENT', 'LATE_PAYMENT_SUM')
+        pos = fe.do_sum(pos, ['SK_ID_PREV'], 'LATE_PAYMENT', 'LATE_PAYMENT_SUM')
 
         # Last month of each application
         last_month_df = pos.groupby('SK_ID_PREV')['MONTHS_BALANCE'].idxmax()
@@ -380,10 +381,11 @@ class TransformPipeline:
 
     def installment(self, ins):
         
-        ins, cat_cols = one_hot_encoder(ins, nan_as_category=True)
+        fe=FeaturePipeline()
+        ins, cat_cols = fe.one_hot_encoder(ins, nan_as_category=True)
 
         # Group payments and get Payment difference
-        ins = do_sum(ins, ['SK_ID_PREV', 'NUM_INSTALMENT_NUMBER'], 'AMT_PAYMENT', 'AMT_PAYMENT_GROUPED')
+        ins = fe.do_sum(ins, ['SK_ID_PREV', 'NUM_INSTALMENT_NUMBER'], 'AMT_PAYMENT', 'AMT_PAYMENT_GROUPED')
         ins['PAYMENT_DIFFERENCE'] = ins['AMT_INSTALMENT'] - ins['AMT_PAYMENT_GROUPED']
         ins['PAYMENT_RATIO'] = ins['AMT_INSTALMENT'] / ins['AMT_PAYMENT_GROUPED']
         ins['PAID_OVER_AMOUNT'] = ins['AMT_PAYMENT'] - ins['AMT_INSTALMENT']
@@ -474,9 +476,10 @@ class TransformPipeline:
         return ins_agg
 
 
-    def credit_card(cc):    
+    def credit_card(self, cc):    
     
-        cc, cat_cols = one_hot_encoder(cc, nan_as_category=True)
+        fe=FeaturePipeline()
+        cc, cat_cols = fe.one_hot_encoder(cc, nan_as_category=True)
 
         # Amount used from limit
         cc['LIMIT_USE'] = cc['AMT_BALANCE'] / cc['AMT_CREDIT_LIMIT_ACTUAL']
@@ -500,7 +503,7 @@ class TransformPipeline:
         # Last month balance of each credit card application
         last_ids = cc.groupby('SK_ID_PREV')['MONTHS_BALANCE'].idxmax()
         last_months_df = cc[cc.index.isin(last_ids)]
-        cc_agg = group_and_merge(last_months_df,cc_agg,'CC_LAST_', {'AMT_BALANCE': ['mean', 'max']})
+        cc_agg = self.group_and_merge(last_months_df,cc_agg,'CC_LAST_', {'AMT_BALANCE': ['mean', 'max']})
 
         CREDIT_CARD_TIME_AGG = {
             'AMT_BALANCE': ['mean', 'max'],
@@ -527,8 +530,19 @@ class TransformPipeline:
             cc_prev_id = cc[cc['MONTHS_BALANCE'] >= -months]['SK_ID_PREV'].unique()
             cc_recent = cc[cc['SK_ID_PREV'].isin(cc_prev_id)]
             prefix = 'INS_{}M_'.format(months)
-            cc_agg = group_and_merge(cc_recent, cc_agg, prefix, CREDIT_CARD_TIME_AGG)
+            cc_agg = self.group_and_merge(cc_recent, cc_agg, prefix, CREDIT_CARD_TIME_AGG)
 
 
         print('"Credit Card Balance" final shape:', cc_agg.shape)
         return cc_agg
+    
+
+    def merge(self, df, b, cash, ins, cc, pa):
+
+        data = df.merge(b, how='left', on='SK_ID_CURR')
+        data = data.merge(cash, how='left', on='SK_ID_CURR')
+        data = data.merge(ins, how='left', on='SK_ID_CURR')
+        data = data.merge(cc, how='left', on='SK_ID_CURR')
+        data = data.merge(pa, how='left', on='SK_ID_CURR')
+
+        return data
