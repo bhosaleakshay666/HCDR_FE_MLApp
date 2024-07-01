@@ -9,43 +9,37 @@ from sklearn.pipeline import Pipeline
 from src.exception import CustomException
 from src.logger import logging
 from src.pipeline.transform_pipeline import TransformPipeline
+from src.components.model_trainer import TrainPipeline
 import os
 
 from src.utils import save_object
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path=os.path.join('artifacts',"proprocessor.pkl")
+    preprocessor_obj_file_path=os.path.join('artifacts',"proprocessed.csv")
 
 class DataTransformation:
     def __init__(self):
         self.data_transformation_config=DataTransformationConfig()
 
-    def add_trx2(self, df):
-        df['MA_10'] = df['Adj Close'].rolling(10).mean()
-        df = df[df['MA_10'].notna()]
-        df['MA_20'] = df['Adj Close'].rolling(20).mean()
-        df = df[df['MA_20'].notna()]
-        df['MA_60'] = df['Adj Close'].rolling(60).mean()
-        df = df[df['MA_60'].notna()]
-        df['Daily Return'] = df['Adj Close'].pct_change()
-        df = df[df['Daily Return'].notna()]
-        
-        return df
-        
     
-        
-    def get_data_transformer_object(self, data):
+             
+    def get_data_transformed(self, data):
         
         try:
-            prep_ob = self.add_trx2(data)
-            return prep_ob
+            lgbm1=TrainPipeline()
+            sub1, feat = lgbm1.model1(data)
+            data1 = data.drop(columns=feat)
+            
+            data1.to_csv(self.data_transformation_config.preprocessor_obj_file_path,index=False,header=True)
+            logging.info('Read the processed dataset as dataframe')
+            return data1
         
         except Exception as e:
             raise CustomException(e,sys)
         
 
-    def transform_data(self,train_path,test_path, bureau_path, burbal_path, payments_path, pos_path, cc_path, prev_app_path):
+    def initiate_transform_data(self,train_path,test_path, bureau_path, burbal_path, payments_path, pos_path, cc_path, prev_app_path):
 
         try:
             train=pd.read_csv(train_path)
@@ -74,20 +68,27 @@ class DataTransformation:
             
             # Concatenate all the stock dataframes into one
             data = trx.merge(df, bureau_2, cash_, payments_, cc_, prev_app_)
-            trxobj=self.get_data_transformer_object(data)
+            data = trx.remove_missing_columns(data, threshold=77)
+            noninformative_cols = []
+            for col in data.columns:
+                if len(data[col].value_counts()) < 2:
+                    noninformative_cols.append(col)
+            data=data.drop(columns=noninformative_cols)
+            data = trx.remove_missing_columns(data)
+            trxobj=self.get_data_transformed(data)
 
             logging.info(
                 f"Applying preprocessing object on combined dataframe"
             )
 
-            logging.info(f"Saved preprocessing object.")
+            logging.info(f"Saved preprocessed dataframe.")
 
-            save_object(
+            '''save_object(
 
                 file_path=self.data_transformation_config.preprocessor_obj_file_path,
                 obj=trxobj
 
-            )
+            )'''
 
             return (
                 trxobj,

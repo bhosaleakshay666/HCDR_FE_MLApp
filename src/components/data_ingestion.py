@@ -6,7 +6,9 @@ import pandas as pd
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-#from src.components.data_transformtion import DataTransformation, DataTransformationConfig
+from src.components.data_transformation import DataTransformation, DataTransformationConfig
+from src.components.model_trainer import ModelTrainer,ModelTrainerConfig
+from src.pipeline.train_pipeline import TrainPipeline
 
 #from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
@@ -47,6 +49,7 @@ class DataIngestion:
             
             train.to_csv(self.ingestion_config.train_data_path,index=False,header=True)
             logging.info('Read the train dataset as dataframe')
+
             test.to_csv(self.ingestion_config.test_data_path,index=False,header=True)
             logging.info('Read the test dataset as dataframe') 
 
@@ -86,16 +89,18 @@ class DataIngestion:
         
         except Exception as e:
             raise CustomException(e,sys)
-        
-
-    
-        
 
     
 
 if __name__=="__main__":
     di=DataIngestion()
-    di.initiate_data_ingestion()
-    
+    train_path,test_path, bureau_path, burbal_path, payments_path, pos_path, cc_path, prev_app_path=di.initiate_data_ingestion()
 
-    
+    data_transformation=DataTransformation()
+    data, path=data_transformation.initiate_transform_data(train_path,test_path, bureau_path, burbal_path, payments_path, pos_path, cc_path, prev_app_path)
+
+    tp = TrainPipeline()
+    final = tp.data_post_processing(data)
+
+    modeltrainer=ModelTrainer()
+    print(modeltrainer.initiate_model_trainer(final))

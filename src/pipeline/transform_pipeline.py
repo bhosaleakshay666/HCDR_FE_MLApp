@@ -540,9 +540,42 @@ class TransformPipeline:
     def merge(self, df, b, cash, ins, cc, pa):
 
         data = df.merge(b, how='left', on='SK_ID_CURR')
+        data = data.merge(pa, how='left', on='SK_ID_CURR')
         data = data.merge(cash, how='left', on='SK_ID_CURR')
         data = data.merge(ins, how='left', on='SK_ID_CURR')
-        data = data.merge(cc, how='left', on='SK_ID_CURR')
-        data = data.merge(pa, how='left', on='SK_ID_CURR')
+        data = data.merge(cc, how='inner', on='SK_ID_CURR')
+        data = data.astype({col: 'float64' for col in data.columns if data[col].dtype == 'object'})
 
         return data
+    
+
+    def remove_missing_columns(df, threshold = 77):
+
+    # Calculate missing stats for train and test (remember to calculate a percent!)
+        df_miss= pd.DataFrame(df.isnull().sum())
+        df_miss['percent'] = 100 * df_miss[0] / len(df)
+        
+        
+        missing_columns = list(df_miss.index[df_miss['percent'] > threshold])
+        s = list(df_miss.index[df_miss['percent'] < threshold])
+        
+        # Print information
+        print('There are %d columns with greater than %d%% missing values.' % (len(missing_columns), threshold))
+        
+        # Drop the missing columns and return
+        df = df.drop(columns = missing_columns)
+        
+        
+        for m in [df]:
+            for col in s:
+                if m[col].isnull().sum()>0:
+                    if m[col].dtype=='object' or m[col].dtype=='category':
+                        md= df[col].mode()
+                        m[col].fillna(md, inplace=True)
+                
+        
+        
+        return df
+    
+
+    
