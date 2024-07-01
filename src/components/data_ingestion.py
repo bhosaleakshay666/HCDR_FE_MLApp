@@ -3,9 +3,10 @@ import sys
 from src.exception import CustomException
 from src.logger import logging
 import pandas as pd
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-from src.components.data_transformtion import DataTransformation, DataTransformationConfig
+#from src.components.data_transformtion import DataTransformation, DataTransformationConfig
 
 #from sklearn.model_selection import train_test_split
 from dataclasses import dataclass
@@ -28,7 +29,7 @@ class DataIngestion:
         self.ingestion_config=DataIngestionConfig()
 
     
-    def initiate_data_ingestion(self, train, test, bureau, bureau_bal, cc_bal, prev_app, payments, cash):
+    def initiate_data_ingestion(self):
         logging.info("Entered the  data ingestion method or component")
         try:
             
