@@ -1,5 +1,9 @@
 import sys
-import logging
+
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from src.logger import logging
 
 
 def error_message_detail(error,error_detail:sys):
@@ -19,12 +23,3 @@ class CustomException(Exception):
     def __str__(self):
         return self.error_message
     
-
-if __name__=="__main__":
-    
-    try:
-        a=1/0
-
-    except Exception as e:
-        logging.info("Error check")
-        raise CustomException(e,sys)

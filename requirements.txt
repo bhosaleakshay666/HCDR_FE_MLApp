@@ -1,6 +1,11 @@
 pandas
 numpy
 scikit-learn
+lightgbm
+matplotlib
+gc
+re
+time
 Flask
 fastapi
 seaborn
